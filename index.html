@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hexagone Élevages CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href='https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css' rel='stylesheet' />
+<script src='https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js' defer></script>
+<style>
+:root {
+  --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --bg-app: #f0f2f5;
+  --bg-surface: #ffffff;
+  --bg-hover: #f7f8fa;
+  --bg-muted: #f5f6f8;
+  --bg-active: rgba(0, 102, 255, 0.1);
+  --border: #e3e5e8;
+  --border-light: #eef0f2;
+  --border-focus: #0066FF;
+  --text-1: #1a1d23;
+  --text-2: #5f6368;
+  --text-3: #9aa0a6;
+  --accent: #0066FF;
+  --accent-hover: #0056D2;
+  --accent-bg: rgba(0, 102, 255, 0.08);
+  --accent-text: #0050b3;
+  --success: #1e8e3e;
+  --success-bg: #e6f4ea;
+  --warning: #e37400;
+  --warning-bg: #fef7e0;
+  --danger: #d93025;
+  --danger-bg: #fce8e6;
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --shadow-1: 0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-2: 0 4px 12px rgba(0,0,0,0.08);
+  --transition: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font); background: var(--bg-app); color: var(--text-1); -webkit-font-smoothing: antialiased; font-size: 13px; line-height: 1.5; }
+
+/* ── SIDEBAR ── */
+.app-sidebar {
+  position: fixed; top: 0; left: 0; width: 200px; height: 100vh;
+  background: var(--bg-surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; padding: 16px 8px; gap: 2px; z-index: 200;
+}
+.sidebar-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 8px 16px 8px; margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-logo-text { font-size: 13px; font-weight: 700; color: var(--text-1); line-height: 1.2; }
+.sidebar-logo-text span { color: var(--accent); }
+.sidebar-btn {
+  width: 100%; height: 38px; border-radius: var(--radius);
+  display: flex; align-items: center; gap: 10px; padding: 0 10px;
+  color: var(--text-2); font-size: 13px; font-weight: 500; cursor: pointer;
+  border: none; background: transparent; transition: all var(--transition);
+  font-family: var(--font);
+}
+.sidebar-btn:hover { background: var(--bg-hover); color: var(--text-1); }
+.sidebar-btn.active { background: var(--accent-bg); color: var(--accent); font-weight: 600; }
+.sidebar-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+.sidebar-spacer { flex: 1; }
+.sidebar-section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--text-3); padding: 12px 10px 4px 10px;
+}
+
+/* ── MAIN ── */
+.app-main { margin-left: 200px; min-height: 100vh; }
+
+/* ── TOPBAR ── */
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 24px; background: var(--bg-surface);
+  border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
+}
+.topbar input[type="text"] {
+  flex: 1; padding: 8px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 13px; font-family: var(--font);
+  outline: none; transition: border var(--transition);
+}
+.topbar input:focus { border-color: var(--accent); }
+.topbar select {
+  padding: 8px 10px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 13px; font-family: var(--font);
+  background: white; cursor: pointer;
+}
+.topbar-btn {
+  padding: 8px 16px; border: 1px solid var(--border);
+  border-radius: var(--radius); font-size: 12px; font-weight: 600;
+  cursor: pointer; background: white; color: var(--text-1);
+  font-family: var(--font); transition: all var(--transition);
+}
+.topbar-btn:hover { background: var(--bg-hover); }
+.topbar-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+.topbar-count { font-size: 12px; color: var(--text-3); white-space: nowrap; }
+
+/* ── STATS BAR ── */
+.stats-bar {
+  display: flex; gap: 16px; padding: 12px 24px;
+  background: var(--bg-muted); border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.stat-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px;
+  background: var(--bg-surface); border: 1px solid var(--border);
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+}
+.stat-pill .num { font-weight: 700; color: var(--accent); }
+
+/* ── CARDS VIEW ── */
+.cards-container { padding: 16px 24px; display: flex; flex-direction: column; gap: 8px; }
+.card {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+  display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px 16px;
+  cursor: pointer; transition: all var(--transition);
+}
+.card:hover { box-shadow: var(--shadow-1); border-color: var(--accent); }
+.card-name { font-weight: 600; font-size: 13px; }
+.card-meta { font-size: 12px; color: var(--text-2); }
+.card-meta a { color: var(--accent); text-decoration: none; }
+.card-meta a:hover { text-decoration: underline; }
+.card-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.badge {
+  display: inline-block; padding: 2px 10px; border-radius: 12px;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.badge-nouveau { background: #e9ecef; color: #666; }
+.badge-email { background: #dbeafe; color: #1e40af; }
+.badge-appel { background: #ede9fe; color: #6b21a8; }
+.badge-repondu { background: #d1fae5; color: #065f46; }
+.badge-interesse { background: #dcfce7; color: #166534; }
+.badge-rdv { background: #ffedd5; color: #9a3412; }
+.badge-refuse { background: var(--danger-bg); color: var(--danger); }
+.badge-gagne { background: var(--success-bg); color: var(--success); }
+.naf-badge { background: var(--bg-muted); color: var(--text-2); font-size: 10px; padding: 2px 8px; border-radius: 8px; }
+.dept-badge { background: var(--accent-bg); color: var(--accent); font-size: 10px; padding: 2px 8px; border-radius: 8px; }
+
+/* ── KANBAN VIEW ── */
+.kanban-container {
+  display: flex; gap: 12px; padding: 16px 24px;
+  overflow-x: auto; min-height: calc(100vh - 160px);
+}
+.kanban-col {
+  min-width: 280px; max-width: 320px; flex-shrink: 0;
+  background: var(--bg-muted); border-radius: var(--radius-lg);
+  display: flex; flex-direction: column;
+}
+.kanban-col-header {
+  padding: 12px 14px; font-size: 13px; font-weight: 700;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 2px solid var(--border);
+}
+.kanban-col-count { font-size: 11px; font-weight: 500; color: var(--text-3); }
+.kanban-col-body { padding: 8px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.kanban-card {
+  background: var(--bg-surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px; cursor: pointer;
+  transition: all var(--transition);
+}
+.kanban-card:hover { box-shadow: var(--shadow-1); }
+.kanban-card-name { font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+.kanban-card-meta { font-size: 11px; color: var(--text-2); }
+
+/* ── MAP VIEW ── */
+#mapView { display: none; }
+#mapContainer { width: 100%; height: calc(100vh - 120px); }
+
+/* ── DETAIL PANEL ── */
+.detail-overlay {
+  display: none; position: fixed; top: 0; right: 0;
+  width: 480px; height: 100vh; background: var(--bg-surface);
+  box-shadow: -4px 0 20px rgba(0,0,0,0.1); z-index: 300;
+  overflow-y: auto; border-left: 1px solid var(--border);
+}
+.detail-overlay.open { display: block; }
+.detail-header {
+  padding: 20px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.detail-close { cursor: pointer; font-size: 20px; color: var(--text-3); background: none; border: none; }
+.detail-body { padding: 20px; }
+.detail-section { margin-bottom: 20px; }
+.detail-section h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--text-3); margin-bottom: 8px; }
+.detail-field { margin-bottom: 8px; font-size: 13px; }
+.detail-field label { font-weight: 600; color: var(--text-2); display: block; font-size: 11px; margin-bottom: 2px; }
+.detail-field a { color: var(--accent); }
+.detail-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.detail-actions select, .detail-actions textarea, .detail-actions input {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); font-size: 13px; font-family: var(--font);
+}
+.detail-actions textarea { min-height: 80px; resize: vertical; }
+.btn-save {
+  padding: 8px 20px; background: var(--accent); color: white;
+  border: none; border-radius: var(--radius-sm); font-weight: 600;
+  cursor: pointer; font-family: var(--font); font-size: 13px;
+}
+.btn-save:hover { background: var(--accent-hover); }
+.btn-export {
+  padding: 6px 14px; background: white; color: var(--text-1);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 12px; cursor: pointer; font-family: var(--font);
+}
+.btn-export:hover { background: var(--bg-hover); }
+
+/* ── LOADING ── */
+.loading-screen {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 60vh; gap: 16px; color: var(--text-2);
+}
+.loading-bar { width: 300px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.loading-fill { height: 100%; background: var(--accent); transition: width 0.3s; width: 0%; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 768px) {
+  .app-sidebar { display: none; }
+  .app-main { margin-left: 0; }
+  .card { grid-template-columns: 1fr; }
+  .detail-overlay { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="app-sidebar" id="appSidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo-text">Hexagone<br><span>Élevages</span></div>
+  </div>
+
+  <button class="sidebar-btn active" onclick="switchView('list')" id="btnList">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <span class="sidebar-label">Liste</span>
+  </button>
+  <button class="sidebar-btn" onclick="switchView('kanban')" id="btnKanban">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>
+    <span class="sidebar-label">Kanban</span>
+  </button>
+  <button class="sidebar-btn" onclick="switchView('map')" id="btnMap">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    <span class="sidebar-label">Carte</span>
+  </button>
+
+  <div class="sidebar-section-label">Actions</div>
+  <button class="sidebar-btn" onclick="exportCSV()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <span class="sidebar-label">Export CSV</span>
+  </button>
+  <button class="sidebar-btn" onclick="exportVCF()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span class="sidebar-label">Export VCF</span>
+  </button>
+
+  <div class="sidebar-spacer"></div>
+  <div style="padding: 8px 10px; font-size: 11px; color: var(--text-3);">
+    <div id="totalCount">—</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="app-main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <input type="text" id="searchInput" placeholder="🔍 Rechercher nom, ville, email, SIRET..." oninput="applyFilters()">
+    <select id="deptFilter" onchange="applyFilters()"><option value="">Tous depts</option></select>
+    <select id="nafFilter" onchange="applyFilters()">
+      <option value="">Tous NAF</option>
+      <option value="01.41Z">🐄 01.41Z — Vaches laitières</option>
+      <option value="01.42Z">🐄 01.42Z — Autres bovins</option>
+      <option value="01.45Z">🐑 01.45Z — Ovins/caprins</option>
+      <option value="01.46Z">🐷 01.46Z — Porcins</option>
+      <option value="01.47Z">🐔 01.47Z — Volailles</option>
+      <option value="01.49Z">🐴 01.49Z — Autres animaux</option>
+      <option value="01.50Z">🌾 01.50Z — Culture & élevage</option>
+    </select>
+    <select id="statusFilter" onchange="applyFilters()">
+      <option value="">Tous statuts</option>
+      <option value="nouveau">Nouveau</option>
+      <option value="email">📧 Email envoyé</option>
+      <option value="appel">📞 Appelé</option>
+      <option value="repondu">💬 Répondu</option>
+      <option value="interesse">⭐ Intéressé</option>
+      <option value="rdv">📅 RDV pris</option>
+      <option value="refuse">❌ Refus</option>
+      <option value="gagne">✅ Gagné</option>
+    </select>
+    <button class="topbar-btn" id="btnMyLeads" onclick="toggleMyLeads()">Mes élevages</button>
+    <span class="topbar-count" id="filterCount"></span>
+  </div>
+
+  <!-- STATS BAR -->
+  <div class="stats-bar" id="statsBar"></div>
+
+  <!-- LOADING -->
+  <div class="loading-screen" id="loadingScreen">
+    <div>⏳ Chargement des élevages...</div>
+    <div class="loading-bar"><div class="loading-fill" id="loadingFill"></div></div>
+    <div id="loadingText" style="font-size: 12px;"></div>
+  </div>
+
+  <!-- LIST VIEW -->
+  <div id="listView"><div class="cards-container" id="cardsContainer"></div></div>
+
+  <!-- KANBAN VIEW -->
+  <div id="kanbanView" style="display:none;"><div class="kanban-container" id="kanbanContainer"></div></div>
+
+  <!-- MAP VIEW -->
+  <div id="mapView"><div id="mapContainer"></div></div>
+</main>
+
+<!-- DETAIL PANEL -->
+<div class="detail-overlay" id="detailPanel">
+  <div class="detail-header">
+    <div>
+      <div style="font-size: 18px; font-weight: 700;" id="detailName"></div>
+      <div style="font-size: 13px; color: var(--text-2);" id="detailLocation"></div>
+    </div>
+    <button class="detail-close" onclick="closeDetail()">✕</button>
+  </div>
+  <div class="detail-body" id="detailBody"></div>
+</div>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
